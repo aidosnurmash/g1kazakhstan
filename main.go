@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/gorilla/mux"
 	_ "github.com/mattn/go-sqlite3"
+	"image"
 	_ "image/jpeg"
 	_ "image/png"
 	"imageSavingProject/models"
@@ -33,7 +34,7 @@ func main() {
 	flag.StringVar(&server, "server", "127.0.0.1", "specify server to use.  defaults to 127.0.0.1")
 	flag.StringVar(&dbPort, "db_port", "8000", "specify database port to use.  defaults to 8000")
 	flag.StringVar(&dbServer, "db_server", "127.0.0.1", "specify dbServer to use.  defaults to 127.0.0.1")
-	flag.StringVar(&filePath, "file_path", "./images", "specify filePath to use.  defaults to ./images")
+	flag.StringVar(&filePath, "file_path", "/Users/aidos/go/src/imageSavingProject/images/", "specify filePath to use.  defaults to /Users/aidos/go/src/imageSavingProject/images")
 	flag.Parse()
 
 	fmt.Println(port)
@@ -42,7 +43,6 @@ func main() {
 	fmt.Println(dbServer)
 	fmt.Println(filePath)
 	fmt.Println(os.Args)
-	filePath = "/Users/aidos/go/src/imageSavingProject/images/"
 
 	database = &models.Database{}
 	database.Init()
@@ -83,18 +83,21 @@ func saveImageHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	defer tempFile.Close()
 	tempFile.Write(fileBytes)
-	/*imageData, imageType, err := image.Decode(file)
+	curFile, _ := os.Open(tempFile.Name())
+	imageData, _, err := image.Decode(curFile)
 	if err != nil {
 		fmt.Fprintf(w, "Error  opening image %+v\n", err.Error())
 		return
 	}
 	fmt.Println("okasdfasd")
-	*/
-	insertedPictureId, _ := database.InsertPicture(tempFile.Name(), handler.Filename)
 
+	insertedPictureId, _ := database.InsertPicture(tempFile.Name(), handler.Filename)
+	fmt.Println(imageData.Bounds().Max)
+	fmt.Println(imageData.Bounds().Min)
 
 	fmt.Fprintf(w, "Successfully Uploaded File %+v %+v\n", tempFile.Name(), insertedPictureId)
 }
+
 
 func saveFileByte(fileBytes []byte) string {
 	tempFile, err := ioutil.TempFile(filePath, "upload-*.png")
@@ -105,6 +108,7 @@ func saveFileByte(fileBytes []byte) string {
 	tempFile.Write(fileBytes)
 	return tempFile.Name()
 }
+
 
 func viewImageHandler(w http.ResponseWriter, r *http.Request) {
 	fmt.Println("OK")
@@ -126,6 +130,7 @@ func viewImageHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/octet-stream")
 	http.ServeFile(w, r, picture.Path)
 }
+
 func viewImagePartHandler(w http.ResponseWriter, r *http.Request) {
 
 	fmt.Println("OK")
